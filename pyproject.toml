@@ -22,6 +22,14 @@ dependencies = [
 [tool.setuptools]
 packages = ["repe"]
 
+[tool.uv.sources]
+repe = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "repe",
+]
+
 [project.urls]
 Homepage = "https://github.com/andyzoujm/representation-engineering"
 Issues = "https://github.com/andyzoujm/representation-engineering/issues"
