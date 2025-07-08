@@ -8,12 +8,15 @@ repe_pipeline_registry()
 
 # Initialize SmolLM2 model and tokenizer (135M parameters)
 model_name = "HuggingFaceTB/SmolLM2-135M"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
 tokenizer.pad_token_id = model.config.eos_token_id
+tokenizer.padding_side = "left"
 
 rep_reading_pipeline =  pipeline("rep-reading", model=model, tokenizer=tokenizer)
+
+
 
 
 dummy_data = [
@@ -39,30 +42,28 @@ dummy_data = [
 # Convert to HuggingFace Dataset
 dataset = Dataset.from_list(dummy_data)
 
-positive = dataset[:5]
-negative = dataset[5:]
+train_data = dataset["train"]
+train_labels = dataset["label"]
 
-# TODO data setup
-
-
+# Todo apply template
 
 rep_token = -1
 hidden_layers = list(range(-1, -model.config.num_hidden_layers, -1))
 n_difference = 1
 direction_method = 'pca'
 
+direction_finder_kwargs={"n_components": 1}
 
 # Example usage of the pipelines
-
 print(dataset[:2])
 creativity_rep_reader = rep_reading_pipeline.get_directions(
-    dataset['text'],
+    train_data=train_data,
     rep_token=rep_token,
     hidden_layers=hidden_layers,
     n_difference=n_difference,
-    train_labels=dataset['label'],
+    train_labels=train_labels,
     direction_method=direction_method,
-    batch_size=32,
+    direction_finder_kwargs=direction_finder_kwargs
 )
 
 
