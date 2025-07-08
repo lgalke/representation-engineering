@@ -5,12 +5,15 @@ import numpy as np
 from itertools import islice
 import torch
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEBUG = True
+
 def project_onto_direction(H, direction):
     """Project matrix H (n, d_1) onto direction vector (d_2,)"""
     # Calculate the magnitude of the direction vector
      # Ensure H and direction are on the same device (CPU or GPU)
     if type(direction) != torch.Tensor:
-        H = torch.Tensor(H).cuda()
+        H = torch.Tensor(H).to(DEVICE)
     if type(direction) != torch.Tensor:
         direction = torch.Tensor(direction)
         direction = direction.to(H.device)
@@ -21,11 +24,11 @@ def project_onto_direction(H, direction):
     return projection
 
 def recenter(x, mean=None):
-    x = torch.Tensor(x).cuda()
+    x = torch.Tensor(x).to(DEVICE)
     if mean is None:
-        mean = torch.mean(x,axis=0,keepdims=True).cuda()
+        mean = torch.mean(x,axis=0,keepdims=True).to(DEVICE)
     else:
-        mean = torch.Tensor(mean).cuda()
+        mean = torch.Tensor(mean).to(DEVICE)
     return x - mean
 
 class RepReader(ABC):
@@ -156,6 +159,9 @@ class PCARepReader(RepReader):
         signs = {}
 
         for layer in hidden_layers:
+            if DEBUG:
+                print(hidden_states[layer].shape)
+                print(train_labels)
             assert hidden_states[layer].shape[0] == len(np.concatenate(train_labels)), f"Shape mismatch between hidden states ({hidden_states[layer].shape[0]}) and labels ({len(np.concatenate(train_labels))})"
             layer_hidden_states = hidden_states[layer]
 
