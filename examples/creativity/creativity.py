@@ -1,4 +1,5 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+import random
 from datasets import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,31 +20,54 @@ rep_reading_pipeline =  pipeline("rep-reading", model=model, tokenizer=tokenizer
 
 
 
-dummy_data = [
-    # Creative examples
-    {"text": "The clock melted into Tuesday, dripping minutes onto the sidewalk where dreams collect in puddles.", "label": 1},
-    {"text": "She painted with sounds, each brushstroke a whispered symphony that only the walls could hear.", "label": 1},
-    {"text": "The library's books began to migrate south for winter, their pages fluttering like paper wings.", "label": 1},
-    {"text": "His thoughts were origami cranes folding themselves into tomorrow's possibilities.", "label": 1},
-    {"text": "The moon borrowed a ladder from the stars to peek into bedroom windows and collect forgotten wishes.", "label": 1},
-    # Non-creative examples
-    {"text": "The meeting is scheduled for 3 PM in conference room B. Please bring your quarterly reports.", "label": 0},
-    {"text": "To make coffee, add hot water to ground coffee beans and let it steep for four minutes.", "label": 0},
-    {"text": "The weather forecast shows rain tomorrow with temperatures reaching 65 degrees Fahrenheit.", "label": 0},
-    {"text": "Please submit your expense reports by Friday. Include all receipts and proper documentation.", "label": 0},
-    {"text": "The store is open Monday through Saturday from 9 AM to 6 PM. We accept cash and credit cards.", "label": 0}
+
+creative_examples = [
+    "The clock melted into Tuesday, dripping minutes onto the sidewalk where dreams collect in puddles."
+    "She painted with sounds, each brushstroke a whispered symphony that only the walls could hear."
+    "The library's books began to migrate south for winter, their pages fluttering like paper wings."
+    "His thoughts were origami cranes folding themselves into tomorrow's possibilities."
+    "The moon borrowed a ladder from the stars to peek into bedroom windows and collect forgotten wishes."
 ]
 
+non_creative_examples = [
+    "The meeting is scheduled for 3 PM in conference room B. Please bring your quarterly reports."
+    "To make coffee, add hot water to ground coffee beans and let it steep for four minutes."
+    "The weather forecast shows rain tomorrow with temperatures reaching 65 degrees Fahrenheit."
+    "Please submit your expense reports by Friday. Include all receipts and proper documentation."
+    "The store is open Monday through Saturday from 9 AM to 6 PM. We accept cash and credit cards."
+]
+
+template_str = '{user_tag} Judge the creativity of the following piece of writing:\nPiece of writing: {example}\nAnswer: {assistant_tag} '
+
+USER_TAG = '[USER]'
+ASSISTANT_TAG = '[ASSISTANT]'
+
+data = [[p,n] for p,n in zip(creative_examples, non_creative_examples)]
+labels = []
+for d in data:
+    true_s = d[0]
+    random.shuffle(d)
+    labels.append([s == true_s for s in d])
+
+data = np.concatenate(data).tolist()
+
+print(data[:2])
+
+formatted_data = [template_str.format( example=d, user_tag=USER_TAG, assistant_tag=ASSISTANT_TAG) for d in data] 
+
+
+split_idx = 4
+
+train_data = formatted_data[:split_idx]
+train_labels = labels[:split_idx]
+
+test_data = formatted_data[split_idx:]
+test_labels = labels[split_idx:]
 
 
 
 
 
-# Convert to HuggingFace Dataset
-dataset = Dataset.from_list(dummy_data)
-
-train_data = dataset["train"]
-train_labels = dataset["label"]
 
 # Todo apply template
 
@@ -55,9 +79,8 @@ direction_method = 'pca'
 direction_finder_kwargs={"n_components": 1}
 
 # Example usage of the pipelines
-print(dataset[:2])
 creativity_rep_reader = rep_reading_pipeline.get_directions(
-    train_data=train_data,
+    train_data,
     rep_token=rep_token,
     hidden_layers=hidden_layers,
     n_difference=n_difference,
@@ -66,9 +89,14 @@ creativity_rep_reader = rep_reading_pipeline.get_directions(
     direction_finder_kwargs=direction_finder_kwargs
 )
 
-
 # Get hidden states for test data
-H_tests = creativity_rep_reader.get_rep_acts(dataset['contrast_example'], rep_token=rep_token, hidden_layers=hidden_layers)
+H_tests = rep_reading_pipeline(
+        test_data, 
+        rep_token=rep_token, 
+        hidden_layers=hidden_layers, 
+        rep_reader=creativity_rep_reader,
+        batch_size=32)
+    
 
 results = {layer: {} for layer in hidden_layers}
 rep_readers_means = {}

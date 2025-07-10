@@ -6,7 +6,7 @@ from itertools import islice
 import torch
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DEBUG = True
+DEBUG = False
 
 def project_onto_direction(H, direction):
     """Project matrix H (n, d_1) onto direction vector (d_2,)"""
@@ -26,7 +26,7 @@ def project_onto_direction(H, direction):
 def recenter(x, mean=None):
     x = torch.Tensor(x).to(DEVICE)
     if mean is None:
-        mean = torch.mean(x,axis=0,keepdims=True).to(DEVICE)
+        mean = torch.mean(x, axis=0, keepdims=True).to(DEVICE)
     else:
         mean = torch.Tensor(mean).to(DEVICE)
     return x - mean
