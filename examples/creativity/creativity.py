@@ -115,9 +115,9 @@ for layer in hidden_layers:
     cors = np.mean([eval_func(H) == H[0] for H in H_test])
     results[layer] = cors
 
+print(results)
 plt.plot(hidden_layers, [results[layer] for layer in hidden_layers])
 plt.show()
-
 
 
 
